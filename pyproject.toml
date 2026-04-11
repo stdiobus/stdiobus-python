@@ -67,7 +67,7 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/stdiobus/stdiobus-python"
+Homepage = "https://stdiobus.com"
 Documentation = "https://github.com/stdiobus/stdiobus-python/tree/main/#readme"
 Repository = "https://github.com/stdiobus/stdiobus-python"
 Issues = "https://github.com/stdiobus/stdiobus-python/issues"
