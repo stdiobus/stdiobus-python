@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=77.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stdiobus"
+version = "2.1.0"
+description = "Python SDK for stdio_bus - AI agent transport layer"
+readme = {file = "README.md", content-type = "text/markdown"}
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Raman Marozau", email = "raman@worktif.com"}
+]
+maintainers = [
+    {name = "Raman Marozau", email = "raman@worktif.com"}
+]
+keywords = [
+    "stdio-bus",
+    "stdiobus",
+    "acp",
+    "mcp",
+    "agent",
+    "ai",
+    "llm",
+    "transport",
+    "json-rpc",
+    "ndjson",
+    "agent-client-protocol",
+    "model-context-protocol"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Networking",
+    "Typing :: Typed",
+]
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "mypy>=1.0",
+    "ruff>=0.1",
+    "build>=1.0",
+    "twine>=4.0",
+]
+native = [
+    "cffi>=1.15",
+]
+all = [
+    "stdiobus[dev,native]",
+]
+
+[project.urls]
+Homepage = "https://github.com/stdiobus/stdiobus"
+Documentation = "https://github.com/stdiobus/stdiobus/tree/main/sdk/python#readme"
+Repository = "https://github.com/stdiobus/stdiobus"
+Issues = "https://github.com/stdiobus/stdiobus/issues"
+Changelog = "https://github.com/stdiobus/stdiobus/blob/main/sdk/python/CHANGELOG.md"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["stdiobus*"]
+
+[tool.setuptools.package-data]
+stdiobus = ["py.typed", "*.pyi"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+namespace_packages = true
+explicit_package_bases = true
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.isort]
+known-first-party = ["stdiobus"]
