@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Verification: Python code blocks from sdk/python/README.md
+"""Verification: Python code blocks from README.md
 are copied here and executed.
 
 If any test here fails, the README is lying to users.

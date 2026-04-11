@@ -17,7 +17,7 @@
 """Native FFI bindings for libstdio_bus.
 
 To build the native extension:
-    cd sdk/python
+    cd stdiobus-python
     python -m stdiobus._native.build_ffi
 
 Prerequisites:

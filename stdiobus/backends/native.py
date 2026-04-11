@@ -53,7 +53,7 @@ class NativeBackend(Backend):
     - Unix-only (Linux, macOS)
     
     Build the native extension:
-        cd sdk/python
+        cd stdiobus-python
         python -m stdiobus._native.build_ffi
     """
     
@@ -70,7 +70,7 @@ class NativeBackend(Backend):
         if not NATIVE_AVAILABLE:
             raise ImportError(
                 "Native backend not available. "
-                "Build with: cd sdk/python && python -m stdiobus._native.build_ffi"
+                "Build with: cd stdiobus-python && python -m stdiobus._native.build_ffi"
             )
         
         self._config_path = config_path
