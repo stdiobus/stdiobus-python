@@ -16,8 +16,8 @@ maintainers = [
     {name = "Raman Marozau", email = "raman@worktif.com"}
 ]
 keywords = [
-    "stdio-bus",
     "stdiobus",
+    "stdio-bus",
     "acp",
     "mcp",
     "agent",
@@ -67,11 +67,11 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/stdiobus/stdiobus"
-Documentation = "https://github.com/stdiobus/stdiobus/tree/main/sdk/python#readme"
-Repository = "https://github.com/stdiobus/stdiobus"
-Issues = "https://github.com/stdiobus/stdiobus/issues"
-Changelog = "https://github.com/stdiobus/stdiobus/blob/main/sdk/python/CHANGELOG.md"
+Homepage = "https://github.com/stdiobus/stdiobus-python"
+Documentation = "https://github.com/stdiobus/stdiobus-python/tree/main/sdk/python#readme"
+Repository = "https://github.com/stdiobus/stdiobus-python"
+Issues = "https://github.com/stdiobus/stdiobus-python/issues"
+Changelog = "https://github.com/stdiobus/stdiobus-python/blob/main/sdk/python/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "."}

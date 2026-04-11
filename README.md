@@ -2,7 +2,8 @@
 
 Python SDK for building AI agents over stdio_bus.
 
-[![PyPI](https://img.shields.io/pypi/v/stdiobus)](https://pypi.org/project/stdiobus/)
+[![PyPI](https://img.shields.io/pypi/v/stdiobus?style=for-the-badge&logo=python&logoColor=white&color=orange)](https://pypi.org/project/stdiobus/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&logo=apache)](LICENSE)
 
 stdiobus gives you a reliable transport layer for ACP/MCP-style workflows:
 route requests to agent workers, keep request/response correlation stable,
