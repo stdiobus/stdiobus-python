@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.1.0 (2026-04-09)
+## 2.1.1 (2026-04-11)
 
 ### Added
 - **Streaming support** — `agent_message_chunk` notification aggregation into `result.text` (ACP protocol parity with Rust SDK)
