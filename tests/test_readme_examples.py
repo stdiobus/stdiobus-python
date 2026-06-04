@@ -168,3 +168,43 @@ def test_readme_subprocess_options():
         ),
     )
     bus.destroy()
+
+
+# ============================================================================
+# README § External Listener (Native Backend Only) — contract verification
+#
+# The listener requires native bindings (not built in CI), so this is a
+# contract/syntax test, not a runnable start(): it proves the documented
+# public surface (NativeOptions, ListenMode, the `native=` constructor
+# parameter) and the documented validation rules exist as described.
+# ============================================================================
+def test_readme_native_listener_contract():
+    import inspect
+    import pytest
+    from stdiobus import (
+        AsyncStdioBus, BusConfig, PoolConfig,
+        NativeOptions, ListenMode, InvalidArgumentError,
+    )
+
+    # NativeOptions / ListenMode are importable from the package root.
+    assert ListenMode.TCP == "tcp"
+
+    # AsyncStdioBus.__init__ exposes the documented `native=` parameter.
+    sig = inspect.signature(AsyncStdioBus.__init__)
+    assert "native" in sig.parameters
+
+    # Documented validation: TCP requires tcp_port (1..65535).
+    NativeOptions(listen_mode=ListenMode.TCP, tcp_host="127.0.0.1", tcp_port=8765).validate()
+    with pytest.raises(ValueError):
+        NativeOptions(listen_mode=ListenMode.TCP).validate()
+
+    # Documented validation: UNIX requires unix_path.
+    NativeOptions(listen_mode=ListenMode.UNIX, unix_path="/tmp/stdiobus.sock").validate()
+
+    # Documented contract: a listener with a non-native backend is rejected.
+    with pytest.raises(InvalidArgumentError, match="native-backend capability"):
+        AsyncStdioBus(
+            config=BusConfig(pools=[PoolConfig(id="w", command="echo", instances=1)]),
+            backend="subprocess",
+            native=NativeOptions(listen_mode=ListenMode.TCP, tcp_port=8765),
+        )

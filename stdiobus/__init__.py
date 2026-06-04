@@ -38,11 +38,14 @@ from stdiobus.client import StdioBus, AsyncStdioBus
 from stdiobus.types import (
     BusState,
     BackendMode,
+    ListenMode,
     BusStats,
     BusConfig,
     PoolConfig,
     LimitsConfig,
     SubprocessOptions,
+    DockerOptions,
+    NativeOptions,
     HelloParams,
     HelloResult,
     Identity,
@@ -74,6 +77,8 @@ __all__ = [
     "PoolConfig",
     "LimitsConfig",
     "SubprocessOptions",
+    "DockerOptions",
+    "NativeOptions",
     # Protocol types
     "HelloParams",
     "HelloResult",
@@ -83,6 +88,7 @@ __all__ = [
     # Types
     "BusState",
     "BackendMode",
+    "ListenMode",
     "BusStats",
     # Errors
     "StdioBusError",

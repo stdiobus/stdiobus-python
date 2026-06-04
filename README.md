@@ -217,11 +217,20 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 | `get_state()`        | Current bus state                          |
 | `get_stats()`        | Runtime statistics                         |
 | `get_backend_type()` | Active backend: subprocess, native, docker |
+| `get_listen_mode()`  | Effective external listener mode (native only; `none` otherwise) |
+| `get_worker_count()` | Running workers, or `-1` if the backend cannot report it |
+| `get_client_count()` | Connected clients, or `-1` if the backend cannot report it |
+
+> `-1` is a deliberate "not introspectable" sentinel. The subprocess and Docker
+> backends have no channel to count daemon workers, so they return `-1` rather
+> than a misleading `0`. For Docker, `get_client_count()` reports whether this
+> SDK is connected to the container (`0`/`1`).
 
 ### Protocol types
 
 `HelloParams`, `HelloResult`, `RequestOptions`, `Identity`, `AuditEvent`,
-`BusConfig`, `PoolConfig`, `LimitsConfig`, `SubprocessOptions`
+`BusConfig`, `PoolConfig`, `LimitsConfig`, `SubprocessOptions`, `NativeOptions`,
+`ListenMode`
 
 ### Errors
 
@@ -265,6 +274,36 @@ bus = StdioBus(
     ),
 )
 ```
+
+### External Listener (Native Backend Only)
+
+By default the bus runs embedded: messages flow through `request()`/`send()` and
+`on_message()`. The native backend can instead open an external listener (TCP or
+Unix socket) so that other processes connect and speak NDJSON directly.
+
+This requires the native cffi bindings to be built
+(`python -m stdiobus._native.build_ffi`). The subprocess and Docker backends do
+not expose a user-controlled listener — passing a non-`none` `listen_mode` with
+`backend="subprocess"` or `backend="docker"` raises `InvalidArgumentError`.
+
+```python
+from stdiobus import AsyncStdioBus, BusConfig, PoolConfig, NativeOptions, ListenMode
+
+bus = AsyncStdioBus(
+    config=BusConfig(
+        pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]
+    ),
+    backend="native",
+    native=NativeOptions(
+        listen_mode=ListenMode.TCP,
+        tcp_host="127.0.0.1",
+        tcp_port=8765,
+    ),
+)
+```
+
+`NativeOptions` validates its own arguments: `ListenMode.TCP` requires `tcp_port`
+(in `1..65535`) and `ListenMode.UNIX` requires `unix_path`.
 
 ## Development
 

@@ -29,11 +29,13 @@ from typing import Any, Optional
 from stdiobus.types import (
     BusState,
     BackendMode,
+    ListenMode,
     BusConfig,
     BusStats,
     BusOptions,
     DockerOptions,
     SubprocessOptions,
+    NativeOptions,
     HelloParams,
     HelloResult,
     Identity,
@@ -77,30 +79,49 @@ def _resolve_backend(
     config_json: Optional[str],
     docker_options: Optional[DockerOptions] = None,
     subprocess_options: Optional[SubprocessOptions] = None,
+    native_options: Optional[NativeOptions] = None,
 ) -> Backend:
-    """Determine and create the appropriate backend."""
+    """Determine and create the appropriate backend.
+
+    Listener contract: an external listener (``native_options.listen_mode`` other
+    than NONE) is a native-backend-only capability. If a listener is requested,
+    the resolved backend MUST be native — for explicit ``backend='docker'`` /
+    ``'subprocess'`` this raises, and for ``backend='auto'`` it forces native
+    rather than silently degrading to a transport with no listener.
+    """
     import platform
 
+    listener_requested = (
+        native_options is not None
+        and native_options.listen_mode != ListenMode.NONE
+    )
+
     if mode == BackendMode.DOCKER:
+        if listener_requested:
+            raise InvalidArgumentError(
+                "listen_mode is a native-backend capability and is not "
+                "supported with backend='docker'. Use backend='native'."
+            )
         return _create_docker_backend(config_path, config_json, docker_options)
 
     if mode == BackendMode.SUBPROCESS:
+        if listener_requested:
+            raise InvalidArgumentError(
+                "listen_mode is a native-backend capability and is not "
+                "supported with backend='subprocess'. Use backend='native'."
+            )
         return _create_subprocess_backend(config_path, config_json, subprocess_options)
 
     if mode == BackendMode.NATIVE:
-        try:
-            from stdiobus.backends.native import NativeBackend, is_native_available
-            if not is_native_available():
-                raise ImportError("Native bindings not built")
-            return NativeBackend(config_path=config_path, config_json=config_json)
-        except ImportError as e:
-            raise InvalidArgumentError(
-                f"Native backend not available: {e}. "
-                "Use backend='subprocess' or backend='docker'."
-            )
+        return _create_native_backend(config_path, config_json, native_options)
 
     # Auto mode
     system = platform.system().lower()
+
+    # A requested listener can only be served by the native backend, so honor
+    # it directly instead of falling through to subprocess/docker.
+    if listener_requested:
+        return _create_native_backend(config_path, config_json, native_options)
 
     if system == "windows":
         # Windows: try subprocess first (if binary found), fall back to docker
@@ -115,13 +136,45 @@ def _resolve_backend(
         return _create_subprocess_backend(config_path, config_json, subprocess_options)
 
     try:
-        from stdiobus.backends.native import NativeBackend, is_native_available
+        from stdiobus.backends.native import is_native_available
         if is_native_available():
-            return NativeBackend(config_path=config_path, config_json=config_json)
+            return _create_native_backend(config_path, config_json, native_options)
     except ImportError:
         pass
 
     return _create_docker_backend(config_path, config_json, docker_options)
+
+
+def _create_native_backend(
+    config_path: Optional[str],
+    config_json: Optional[str],
+    native_options: Optional[NativeOptions],
+) -> "Backend":
+    """Create the native (in-process) backend, forwarding listener options.
+
+    Raises InvalidArgumentError if the native bindings are not built, so the
+    failure mode is identical whether selected explicitly or via auto+listener.
+    """
+    try:
+        from stdiobus.backends.native import NativeBackend, is_native_available
+        if not is_native_available():
+            raise ImportError("Native bindings not built")
+    except ImportError as e:
+        raise InvalidArgumentError(
+            f"Native backend not available: {e}. "
+            "Use backend='subprocess' or backend='docker'."
+        )
+
+    opts = native_options or NativeOptions()
+    return NativeBackend(
+        config_path=config_path,
+        config_json=config_json,
+        listen_mode=opts.listen_mode.value,
+        tcp_host=opts.tcp_host,
+        tcp_port=opts.tcp_port or 0,
+        unix_path=opts.unix_path or "",
+        poll_interval_ms=opts.poll_interval_ms,
+    )
 
 
 def _create_subprocess_backend(
@@ -182,6 +235,7 @@ class AsyncStdioBus:
         timeout_ms: int = 30000,
         docker: Optional[DockerOptions] = None,
         subprocess: Optional[SubprocessOptions] = None,
+        native: Optional[NativeOptions] = None,
     ):
         has_config = config is not None
         has_path = bool(config_path)
@@ -193,6 +247,13 @@ class AsyncStdioBus:
 
         if isinstance(backend, str):
             backend = BackendMode(backend)
+
+        # Validate native options up front (fail fast, before backend creation).
+        if native is not None:
+            try:
+                native.validate()
+            except ValueError as e:
+                raise InvalidArgumentError(str(e))
 
         # Resolve config
         resolved_path: Optional[str] = None
@@ -208,6 +269,7 @@ class AsyncStdioBus:
         self._timeout_ms = timeout_ms
         self._docker_options = docker
         self._subprocess_options = subprocess
+        self._native_options = native
         self._backend: Optional[Backend] = None
         self._message_handlers: list[MessageHandler] = []
         self._pending_requests: dict[str, _PendingRequest] = {}
@@ -220,7 +282,7 @@ class AsyncStdioBus:
 
         # Create backend
         self._backend = _resolve_backend(
-            backend, resolved_path, resolved_json, docker, subprocess,
+            backend, resolved_path, resolved_json, docker, subprocess, native,
         )
         self._backend.on_message(self._handle_message)
 
@@ -558,6 +620,37 @@ class AsyncStdioBus:
             pass
         return "unknown"
 
+    def get_listen_mode(self) -> ListenMode:
+        """Return the effective external listener mode of the active backend.
+
+        Returns :class:`ListenMode.NONE` when no backend exists or the backend
+        exposes no user-controlled listener (subprocess/docker).
+        """
+        if self._backend is None:
+            return ListenMode.NONE
+        return self._backend.get_listen_mode()
+
+    def get_worker_count(self) -> int:
+        """Return the number of running workers.
+
+        Returns -1 when the active backend cannot report this value (e.g.
+        subprocess and docker have no worker-introspection channel).
+        """
+        if self._backend is None:
+            return -1
+        return self._backend.get_worker_count()
+
+    def get_client_count(self) -> int:
+        """Return the number of connected clients.
+
+        Returns -1 when the active backend cannot report this value. For the
+        native backend with a listener this is the count of external clients;
+        for docker it is whether this SDK is connected to the container (0/1).
+        """
+        if self._backend is None:
+            return -1
+        return self._backend.get_client_count()
+
     def is_running(self) -> bool:
         return self.get_state() == BusState.RUNNING
 
@@ -596,6 +689,7 @@ class StdioBus:
         timeout_ms: int = 30000,
         docker: Optional[DockerOptions] = None,
         subprocess: Optional[SubprocessOptions] = None,
+        native: Optional[NativeOptions] = None,
     ):
         self._async_bus = AsyncStdioBus(
             config,
@@ -604,6 +698,7 @@ class StdioBus:
             timeout_ms=timeout_ms,
             docker=docker,
             subprocess=subprocess,
+            native=native,
         )
         self._loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -690,6 +785,15 @@ class StdioBus:
 
     def get_backend_type(self) -> str:
         return self._async_bus.get_backend_type()
+
+    def get_listen_mode(self) -> ListenMode:
+        return self._async_bus.get_listen_mode()
+
+    def get_worker_count(self) -> int:
+        return self._async_bus.get_worker_count()
+
+    def get_client_count(self) -> int:
+        return self._async_bus.get_client_count()
 
     def is_running(self) -> bool:
         return self._async_bus.is_running()

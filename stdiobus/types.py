@@ -168,6 +168,69 @@ class SubprocessOptions:
     env: dict[str, str] = field(default_factory=dict)
 
 
+@dataclass
+class NativeOptions:
+    """Native (in-process) backend configuration.
+
+    Groups the native-only options that the embedded ``libstdio_bus`` exposes,
+    mirroring the ``DockerOptions`` / ``SubprocessOptions`` convention used by
+    the public client constructor.
+
+    The listener (``listen_mode`` other than :class:`ListenMode.NONE`) turns the
+    in-process bus into a server that accepts *external* clients over TCP or a
+    Unix domain socket. It is a native-backend capability only: the subprocess
+    and Docker backends do not expose a user-controlled listener, so requesting
+    a non-NONE ``listen_mode`` with any other backend is rejected by the client.
+
+    Defaults are explicit and intentional:
+    - ``listen_mode=NONE``     → embedded mode, messages flow via send()/on_message().
+    - ``tcp_host="127.0.0.1"`` → loopback bind (no external exposure) when TCP is used.
+    - ``poll_interval_ms=1``   → native step granularity (matches NativeBackend default).
+    """
+    listen_mode: "ListenMode | str" = ListenMode.NONE
+    tcp_host: str = "127.0.0.1"
+    tcp_port: Optional[int] = None
+    unix_path: Optional[str] = None
+    poll_interval_ms: int = 1
+
+    def __post_init__(self) -> None:
+        """Normalize ``listen_mode`` to the :class:`ListenMode` enum.
+
+        Strings are accepted for ergonomic parity with the client's
+        ``backend: BackendMode | str`` option. Coercing here guarantees the
+        invariant that ``listen_mode`` is always a ``ListenMode`` after
+        construction, so downstream ``.value`` access is always safe.
+        """
+        if not isinstance(self.listen_mode, ListenMode):
+            try:
+                self.listen_mode = ListenMode(self.listen_mode)
+            except ValueError as e:
+                raise ValueError(f"invalid listen_mode: {self.listen_mode!r}") from e
+
+    def validate(self) -> None:
+        """Validate native options. Raises ValueError if invalid.
+
+        Mirrors :meth:`BusConfig.validate` — a config object validates itself.
+        """
+        if self.listen_mode == ListenMode.TCP:
+            # Port 0 (ephemeral) is intentionally rejected: the native backend
+            # exposes no API to report back the OS-chosen port, so a bound
+            # listener on port 0 would be undiscoverable by callers.
+            if self.tcp_port is None:
+                raise ValueError("listen_mode=TCP requires tcp_port")
+            if not (1 <= self.tcp_port <= 65535):
+                raise ValueError(
+                    f"tcp_port must be in 1..65535, got {self.tcp_port}"
+                )
+        elif self.listen_mode == ListenMode.UNIX:
+            if not self.unix_path:
+                raise ValueError("listen_mode=UNIX requires unix_path")
+        if self.poll_interval_ms < 1:
+            raise ValueError(
+                f"poll_interval_ms must be >= 1, got {self.poll_interval_ms}"
+            )
+
+
 # ============================================================================
 # Protocol Types (Hello handshake, Extensions, Identity, Audit)
 # ============================================================================

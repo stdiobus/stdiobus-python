@@ -19,7 +19,7 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Optional
 
-from stdiobus.types import BusState, BusStats
+from stdiobus.types import BusState, BusStats, ListenMode
 
 
 class Backend(ABC):
@@ -63,3 +63,30 @@ class Backend(ABC):
     def is_running(self) -> bool:
         """Check if backend is running."""
         return self.get_state() == BusState.RUNNING
+
+    # ------------------------------------------------------------------
+    # Introspection — default ("not supported by this backend") behavior.
+    #
+    # The sentinel -1 follows the cross-SDK convention (see the Node SDK,
+    # where Docker's getWorkerCount() returns -1) meaning "this backend has
+    # no channel to report this value". Returning 0 would be a lie: workers
+    # may exist, the backend simply cannot count them. Backends that *can*
+    # report a value override these methods.
+    # ------------------------------------------------------------------
+
+    def get_listen_mode(self) -> ListenMode:
+        """Return the effective external listener mode.
+
+        Defaults to NONE: only the native backend exposes a user-controlled
+        listener; subprocess/docker communicate over their own internal
+        transport and have no external listener surface.
+        """
+        return ListenMode.NONE
+
+    def get_worker_count(self) -> int:
+        """Return the number of running workers, or -1 if not introspectable."""
+        return -1
+
+    def get_client_count(self) -> int:
+        """Return the number of connected clients, or -1 if not introspectable."""
+        return -1

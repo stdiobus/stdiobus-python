@@ -22,7 +22,7 @@ import threading
 from typing import Callable, List, Optional
 
 from stdiobus.backends.base import Backend
-from stdiobus.types import BusState, BusStats
+from stdiobus.types import BusState, BusStats, ListenMode
 from stdiobus.errors import (
     InvalidStateError,
     TransportError,
@@ -304,6 +304,10 @@ class NativeBackend(Backend):
         if self._bus is None or self._bus == ffi.NULL:
             return 0
         return lib.stdio_bus_client_count(self._bus)
+
+    def get_listen_mode(self) -> ListenMode:
+        """Return the configured external listener mode for this native bus."""
+        return ListenMode(self._listen_mode)
     
     def _cleanup_strings(self) -> None:
         """Clean up C string references."""
