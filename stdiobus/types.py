@@ -18,7 +18,7 @@
 
 from dataclasses import dataclass, field
 from enum import IntEnum, Enum
-from typing import TypedDict, Any, Callable, Optional
+from typing import TypedDict, Any, Callable, Literal, Optional
 import json
 
 
@@ -332,6 +332,54 @@ class RequestOptions:
     agent_id: Optional[str] = None
     identity: Optional[Identity] = None
     audit: Optional[AuditEvent] = None
+
+
+# ============================================================================
+# Incremental Streaming Types (AsyncStdioBus.stream_request)
+# ============================================================================
+
+StreamEventType = Literal["chunk", "result"]
+
+
+@dataclass(frozen=True)
+class StreamEvent:
+    """A typed event yielded by :meth:`AsyncStdioBus.stream_request`.
+
+    A stream yields zero or more ``chunk`` events (one per
+    ``agent_message_chunk`` text, in arrival order) followed by exactly one
+    ``result`` event carrying the final JSON-RPC result.
+
+    ``type == "chunk"``  → ``text`` holds one incremental chunk; ``result`` is None.
+    ``type == "result"`` → ``result`` holds the final result (with the aggregated
+                           ``result["text"]`` identical to ``request()``);
+                           ``text`` is None.
+
+    The event is frozen (immutable): consumers should treat it as read-only.
+    ``Literal`` is used for ``type`` over an ``Enum`` for zero-ceremony call
+    sites (``event.type == "chunk"``).
+    """
+    type: StreamEventType
+    text: Optional[str] = None
+    result: Optional[Any] = None
+
+
+# ============================================================================
+# Pull-based Notification Subscription Types (AsyncStdioBus.subscribe_notifications)
+# ============================================================================
+
+OverflowPolicy = Literal["drop", "close"]
+"""Bounded-queue overflow behavior for a notification :class:`Subscriber`.
+
+``"drop"``  → when the subscriber's queue is full, discard the *newest*
+              notification, leaving the subscriber open and other subscribers
+              untouched.
+``"close"`` → when the subscriber's queue is full, terminate *that* subscriber
+              only; buffered items are still drained before iteration stops.
+
+Applies solely to notification subscriptions. The streaming response queue
+(``stream_request``) is unbounded and never drops, since the aggregated result
+depends on every chunk.
+"""
 
 
 class JsonRpcRequest(TypedDict, total=False):

@@ -42,6 +42,9 @@ Use it when you want to focus on agent logic, not process wiring and message tra
 - Hello handshake: `stdio_bus/hello` negotiation support.
 - Protocol extensions: identity, audit metadata, and `agentId` routing.
 - Streaming support: `agent_message_chunk` aggregation into final response text.
+- Incremental streaming: `stream_request()` yields agent output live as typed events (async-only).
+- Pull-based notifications: `subscribe_notifications()` gives each consumer an independent async iterator (async-only).
+- Fluent construction: `StdioBusBuilder` layered on the existing constructor.
 - Predictable cancellation: in-flight requests fail with `TransportError` on shutdown or crash.
 - Cross-platform: subprocess backend with Docker fallback.
 - Typed API: dataclasses and type hints for IDE support.
@@ -152,6 +155,92 @@ async with AsyncStdioBus(
     print(output)
 ```
 
+### Streaming agent output
+
+`stream_request()` sends a request and yields agent output live: zero or more
+`chunk` events (one per `agent_message_chunk`, in arrival order) followed by
+exactly one `result` event carrying the final result. The result event's
+`result["text"]` is the same aggregated text `request()` would return for the
+identical response, so you can render incrementally without giving up the final
+value.
+
+```python
+from stdiobus import AsyncStdioBus, BusConfig, PoolConfig
+
+async with AsyncStdioBus(
+        config=BusConfig(
+            pools=[PoolConfig(id="agent", command="python", args=["./agent_worker.py"], instances=1)]
+        )
+) as bus:
+    async for event in bus.stream_request("session/prompt", {"input": "Tell me a story"}):
+        if event.type == "chunk":
+            print(event.text, end="", flush=True)  # live output
+        elif event.type == "result":
+            print()
+            final_text = event.result.get("text", "")  # aggregated, == request()
+```
+
+> Streaming is async-only — the synchronous `StdioBus` wrapper keeps its
+> `request()` behavior and exposes no `stream_request()`.
+>
+> Only one `stream_request()` may be active at a time. `agent_message_chunk`
+> notifications carry no per-request correlation id and are broadcast to every
+> pending request, so a second concurrent stream is rejected with
+> `InvalidStateError`. Run streams sequentially.
+
+### Subscribing to notifications
+
+`subscribe_notifications()` returns an independent async iterator over JSON-RPC
+notifications. Each subscriber owns its own bounded queue, so multiple
+subscribers can consume the same stream at their own pace. This is additive to
+the existing `on_notification()` push callback, which keeps firing unchanged.
+
+```python
+from stdiobus import AsyncStdioBus, BusConfig, PoolConfig
+
+async with AsyncStdioBus(
+        config=BusConfig(
+            pools=[PoolConfig(id="agent", command="python", args=["./agent_worker.py"], instances=1)]
+        )
+) as bus:
+    async for notification in bus.subscribe_notifications(max_queue=256, overflow="drop"):
+        print(notification["method"])  # treat the dict as read-only
+```
+
+When a subscriber's bounded queue is full, the `overflow` policy applies to that
+subscriber only: `"drop"` (default) discards the newest notification, `"close"`
+terminates that subscriber. The iterator ends with `StopAsyncIteration` when the
+subscription is closed or the bus is stopped/destroyed.
+
+> Pull-based subscriptions are async-only. The synchronous `StdioBus` wrapper
+> exposes no `subscribe_notifications()`; its `on_notification()` push callback
+> is unaffected and remains available on both clients.
+
+### Builder
+
+`StdioBusBuilder` is a thin fluent layer over the existing constructor. Each
+setter mirrors one constructor keyword and returns the builder for chaining;
+`build()` produces an `AsyncStdioBus` and `build_sync()` produces a `StdioBus`.
+The builder performs no validation of its own — all validation runs in the
+unchanged `__init__`, so invalid inputs raise the same exceptions as direct
+construction.
+
+```python
+from stdiobus import StdioBusBuilder, BusConfig, PoolConfig
+
+bus = (
+    StdioBusBuilder()
+    .config(BusConfig(pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]))
+    .backend("subprocess")
+    .timeout_ms(15000)
+    .build()
+)
+
+async with bus:
+    result = await bus.request("echo", {"message": "hello"})
+    print(result)
+```
+
 ## Configuration
 
 ### Programmatic (recommended)
@@ -187,6 +276,7 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 
 - `AsyncStdioBus(config=..., config_path=..., backend="auto", timeout_ms=...)`
 - `StdioBus(...)` — sync wrapper
+- `StdioBusBuilder()` — fluent builder over the constructor (`build()` / `build_sync()`)
 
 ### Lifecycle
 
@@ -203,10 +293,12 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 | Method                         | Description                               |
 |--------------------------------|-------------------------------------------|
 | `request(method, params, ...)` | Send request and wait for response        |
+| `stream_request(method, ...)`  | Async iterator of `StreamEvent` (chunks + final result); async-only |
 | `notify(method, params, ...)`  | Send notification (no response)           |
 | `send(message)`                | Send raw JSON-RPC message                 |
 | `on_message(handler)`          | Register handler for all inbound messages |
 | `on_notification(handler)`     | Register handler for notifications only   |
+| `subscribe_notifications(...)` | Pull-based async iterator of notifications; async-only |
 
 ### Properties
 
@@ -230,7 +322,8 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 
 `HelloParams`, `HelloResult`, `RequestOptions`, `Identity`, `AuditEvent`,
 `BusConfig`, `PoolConfig`, `LimitsConfig`, `SubprocessOptions`, `NativeOptions`,
-`ListenMode`
+`ListenMode`, `StreamEvent`, `StreamEventType`, `OverflowPolicy`,
+`NotificationSubscription`
 
 ### Errors
 
@@ -248,6 +341,8 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
   to reconnect.
 - `stop()` cancels all in-flight requests with `TransportError` before stopping the backend.
 - Streaming chunks (`agent_message_chunk`) are aggregated into `result["text"]` when the response result is a dict.
+- `stream_request()` and `subscribe_notifications()` are async-only; the synchronous `StdioBus` does not expose them.
+- Only one `stream_request()` is active at a time; a concurrent stream raises `InvalidStateError`.
 - `stdout` from the bus process is expected to carry NDJSON protocol messages only.
 
 ## Advanced: Backend Details

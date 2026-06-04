@@ -34,7 +34,12 @@ Async Example:
     ...     result = await bus.request('echo', {'message': 'hello'})
 """
 
-from stdiobus.client import StdioBus, AsyncStdioBus
+from stdiobus.client import (
+    StdioBus,
+    AsyncStdioBus,
+    StdioBusBuilder,
+    NotificationSubscription,
+)
 from stdiobus.types import (
     BusState,
     BackendMode,
@@ -51,6 +56,9 @@ from stdiobus.types import (
     Identity,
     AuditEvent,
     RequestOptions,
+    StreamEvent,
+    StreamEventType,
+    OverflowPolicy,
 )
 from stdiobus.errors import (
     StdioBusError,
@@ -72,6 +80,7 @@ __all__ = [
     # Main classes
     "StdioBus",
     "AsyncStdioBus",
+    "StdioBusBuilder",
     # Config types
     "BusConfig",
     "PoolConfig",
@@ -85,6 +94,12 @@ __all__ = [
     "Identity",
     "AuditEvent",
     "RequestOptions",
+    # Streaming types
+    "StreamEvent",
+    "StreamEventType",
+    # Notification subscription types
+    "NotificationSubscription",
+    "OverflowPolicy",
     # Types
     "BusState",
     "BackendMode",
