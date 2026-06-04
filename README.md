@@ -1,9 +1,24 @@
-# stdiobus
+<h1 align="center" style="font-weight:500">
+    <strong>stdio Bus Python SDK for AI Agent Transport</strong>
+</h1>
 
-Python SDK for building AI agents over stdio_bus.
+<p align="center">
+    Python SDK for building AI agents over stdio_bus.
+</p>
 
-[![PyPI](https://img.shields.io/pypi/v/stdiobus?style=for-the-badge&logo=python&logoColor=white&color=orange)](https://pypi.org/project/stdiobus/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&logo=apache)](LICENSE)
+<p align="center">
+  <a href="https://pypi.org/project/stdiobus/"><img src="https://img.shields.io/pypi/v/stdiobus?style=for-the-badge&logo=pypi&logoColor=white" alt="PyPI" /></a>
+  <a href="https://github.com/stdiobus"><img src="https://img.shields.io/badge/ecosystem-stdio%20Bus-ff4500?style=for-the-badge" alt="stdioBus" /></a>
+  <a href="https://modelcontextprotocol.io"><img src="https://img.shields.io/badge/protocol-MCP-purple?style=for-the-badge&logo=jsonwebtokens" alt="MCP"></a>
+  <a href="https://agentclientprotocol.com"><img src="https://img.shields.io/badge/protocol-ACP-purple?style=for-the-badge&logo=jsonwebtokens" alt="ACP"></a>
+  <a href="https://www.python.org"><img src="https://img.shields.io/badge/python-%3E%3D3.10-brightgreen?style=for-the-badge&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="https://github.com/stdiobus/stdiobus-cpp"><img src="https://img.shields.io/badge/arch-x86__64%20%7C%20arm64-blue?style=for-the-badge" alt="Architecture"></a>
+  <a href="https://hub.docker.com/r/stdiobus/stdiobus"><img src="https://img.shields.io/badge/docker-Windows%20fallback-blue?style=for-the-badge&logo=docker" alt="Docker" /></a>
+  <a href="https://setuptools.pypa.io"><img src="https://img.shields.io/badge/build-setuptools-yellow?style=for-the-badge&logo=pypi" alt="Build" /></a>
+  <a href="https://github.com/stdiobus/stdiobus-python/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue?style=for-the-badge&logo=opensourceinitiative" alt="License" /></a>
+  <a href="https://mypy-lang.org"><img src="https://img.shields.io/badge/mypy-strict-blue?style=for-the-badge&logo=python" alt="Typing" /></a>
+  <a href="https://github.com/stdiobus/stdiobus-python"><img src="https://img.shields.io/badge/status-stable-brightgreen?style=for-the-badge" alt="Stable" /></a>
+</p>
 
 stdiobus gives you a reliable transport layer for ACP/MCP-style workflows:
 route requests to agent workers, keep request/response correlation stable,
@@ -38,6 +53,7 @@ pip install stdiobus
 ```
 
 Requirements:
+
 - Python 3.10+
 - `stdio_bus` binary in PATH (or Docker)
 
@@ -47,14 +63,16 @@ Requirements:
 import asyncio
 from stdiobus import AsyncStdioBus, BusConfig, PoolConfig
 
+
 async def main():
     async with AsyncStdioBus(
-        config=BusConfig(
-            pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]
-        )
+            config=BusConfig(
+                pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]
+            )
     ) as bus:
         result = await bus.request("echo", {"message": "hello"})
         print(result)
+
 
 asyncio.run(main())
 ```
@@ -65,9 +83,9 @@ asyncio.run(main())
 from stdiobus import StdioBus, BusConfig, PoolConfig
 
 with StdioBus(
-    config=BusConfig(
-        pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]
-    )
+        config=BusConfig(
+            pools=[PoolConfig(id="echo", command="python", args=["./echo_worker.py"], instances=1)]
+        )
 ) as bus:
     result = bus.request("echo", {"message": "hello"})
     print(result)
@@ -120,9 +138,9 @@ bus.destroy()
 from stdiobus import AsyncStdioBus, BusConfig, PoolConfig
 
 async with AsyncStdioBus(
-    config=BusConfig(
-        pools=[PoolConfig(id="mcp-tools", command="python", args=["-m", "my_tools_worker"], instances=2)]
-    )
+        config=BusConfig(
+            pools=[PoolConfig(id="mcp-tools", command="python", args=["-m", "my_tools_worker"], instances=2)]
+        )
 ) as bus:
     tools = await bus.request("tools/list")
     print("Tools:", tools)
@@ -172,32 +190,32 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 
 ### Lifecycle
 
-| Method | Description |
-|--------|-------------|
-| `start()` | Start the bus and spawn workers |
+| Method                 | Description                                |
+|------------------------|--------------------------------------------|
+| `start()`              | Start the bus and spawn workers            |
 | `stop(timeout_sec=30)` | Stop gracefully, cancel in-flight requests |
-| `connect(params)` | Start + optional hello handshake |
-| `hello(params)` | Perform stdio_bus/hello handshake |
-| `destroy()` | Release all resources |
+| `connect(params)`      | Start + optional hello handshake           |
+| `hello(params)`        | Perform stdio_bus/hello handshake          |
+| `destroy()`            | Release all resources                      |
 
 ### Messaging
 
-| Method | Description |
-|--------|-------------|
-| `request(method, params, ...)` | Send request and wait for response |
-| `notify(method, params, ...)` | Send notification (no response) |
-| `send(message)` | Send raw JSON-RPC message |
-| `on_message(handler)` | Register handler for all inbound messages |
-| `on_notification(handler)` | Register handler for notifications only |
+| Method                         | Description                               |
+|--------------------------------|-------------------------------------------|
+| `request(method, params, ...)` | Send request and wait for response        |
+| `notify(method, params, ...)`  | Send notification (no response)           |
+| `send(message)`                | Send raw JSON-RPC message                 |
+| `on_message(handler)`          | Register handler for all inbound messages |
+| `on_notification(handler)`     | Register handler for notifications only   |
 
 ### Properties
 
-| Property | Description |
-|----------|-------------|
-| `client_session_id` | Auto-generated routing session ID |
-| `agent_session_id` | Agent-returned session ID (after hello) |
-| `get_state()` | Current bus state |
-| `get_stats()` | Runtime statistics |
+| Property             | Description                                |
+|----------------------|--------------------------------------------|
+| `client_session_id`  | Auto-generated routing session ID          |
+| `agent_session_id`   | Agent-returned session ID (after hello)    |
+| `get_state()`        | Current bus state                          |
+| `get_stats()`        | Runtime statistics                         |
 | `get_backend_type()` | Active backend: subprocess, native, docker |
 
 ### Protocol types
@@ -207,17 +225,18 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 
 ### Errors
 
-| Exception | When |
-|-----------|------|
-| `InvalidArgumentError` | Bad parameter or config |
-| `InvalidStateError` | Operation not valid in current state |
-| `TimeoutError` | Request exceeded deadline |
-| `TransportError` | Transport failure, shutdown, or crash |
-| `PolicyDeniedError` | Operation denied by policy |
+| Exception              | When                                  |
+|------------------------|---------------------------------------|
+| `InvalidArgumentError` | Bad parameter or config               |
+| `InvalidStateError`    | Operation not valid in current state  |
+| `TimeoutError`         | Request exceeded deadline             |
+| `TransportError`       | Transport failure, shutdown, or crash |
+| `PolicyDeniedError`    | Operation denied by policy            |
 
 ## Known Behavior
 
-- No automatic reconnect. If the bus process exits, pending requests fail with `TransportError`. Create a new instance to reconnect.
+- No automatic reconnect. If the bus process exits, pending requests fail with `TransportError`. Create a new instance
+  to reconnect.
 - `stop()` cancels all in-flight requests with `TransportError` before stopping the backend.
 - Streaming chunks (`agent_message_chunk`) are aggregated into `result["text"]` when the response result is a dict.
 - `stdout` from the bus process is expected to carry NDJSON protocol messages only.
@@ -226,11 +245,11 @@ bus = StdioBus(config_path="./stdio-bus-config.json")
 
 For most users, `backend="auto"` is the right choice. Details for those who need control:
 
-| Backend | When | Config delivery |
-|---------|------|-----------------|
-| `subprocess` | stdio_bus binary in PATH (default) | `--config-fd <N>` pipe |
-| `native` | libstdio_bus.a built with cffi | embed API (in-process) |
-| `docker` | Docker available | `--config <mounted-file>` |
+| Backend      | When                               | Config delivery           |
+|--------------|------------------------------------|---------------------------|
+| `subprocess` | stdio_bus binary in PATH (default) | `--config-fd <N>` pipe    |
+| `native`     | libstdio_bus.a built with cffi     | embed API (in-process)    |
+| `docker`     | Docker available                   | `--config <mounted-file>` |
 
 Auto-selection: subprocess → native → docker (Unix), subprocess → docker (Windows).
 
