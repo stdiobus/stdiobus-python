@@ -30,7 +30,7 @@ from stdiobus.errors import (
 
 # Try to import cffi bindings
 try:
-    from stdiobus._native._ffi import ffi, lib
+    from stdiobus.native._ffi import ffi, lib
     NATIVE_AVAILABLE = True
 except ImportError:
     NATIVE_AVAILABLE = False
@@ -54,7 +54,7 @@ class NativeBackend(Backend):
     
     Build the native extension:
         cd stdiobus-python
-        python -m stdiobus._native.build_ffi
+        python -m stdiobus.native.build_ffi
     """
     
     def __init__(
@@ -70,7 +70,7 @@ class NativeBackend(Backend):
         if not NATIVE_AVAILABLE:
             raise ImportError(
                 "Native backend not available. "
-                "Build with: cd stdiobus-python && python -m stdiobus._native.build_ffi"
+                "Build with: cd stdiobus-python && python -m stdiobus.native.build_ffi"
             )
         
         self._config_path = config_path

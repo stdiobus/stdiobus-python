@@ -69,7 +69,7 @@ def _observable(bus: AsyncStdioBus) -> dict:
         "backend_type": bus.get_backend_type(),
         "docker_options": bus._docker_options,
         "subprocess_options": bus._subprocess_options,
-        "native_options": bus._native_options,
+        "native_options": bus.native_options,
     }
 
 

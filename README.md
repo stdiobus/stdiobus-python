@@ -377,7 +377,7 @@ By default the bus runs embedded: messages flow through `request()`/`send()` and
 Unix socket) so that other processes connect and speak NDJSON directly.
 
 This requires the native cffi bindings to be built
-(`python -m stdiobus._native.build_ffi`). The subprocess and Docker backends do
+(`python -m stdiobus.native.build_ffi`). The subprocess and Docker backends do
 not expose a user-controlled listener — passing a non-`none` `listen_mode` with
 `backend="subprocess"` or `backend="docker"` raises `InvalidArgumentError`.
 

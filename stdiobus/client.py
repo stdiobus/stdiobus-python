@@ -435,7 +435,7 @@ class AsyncStdioBus:
         self._timeout_ms = timeout_ms
         self._docker_options = docker
         self._subprocess_options = subprocess
-        self._native_options = native
+        self.native_options = native
         self._backend: Optional[Backend] = None
         self._message_handlers: list[MessageHandler] = []
         self._pending_requests: dict[str, _PendingRequest] = {}

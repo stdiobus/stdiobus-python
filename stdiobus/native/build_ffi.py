@@ -16,14 +16,14 @@
 
 """Build script for cffi bindings to libstdio_bus.
 
-Single ABI source: stdiobus/_native/cdefs.h
+Single ABI source: stdiobus/native/cdefs.h
   - Used by ffi.cdef() for the Python/cffi side.
   - Used by ffi.set_source() for the C-compiler side (with system includes prepended).
 
 No external header required. Links against prebuilt libstdio_bus.a from kernel/prebuilds/.
 
 Usage:
-    python -m stdiobus._native.build_ffi
+    python -m stdiobus.native.build_ffi
 """
 
 import platform
@@ -107,7 +107,7 @@ ffi.cdef(cdefs)
 _SYSTEM_INCLUDES = "#include <stddef.h>\n#include <stdint.h>\n#include <stdbool.h>\n\n"
 
 ffi.set_source(
-    "stdiobus._native._ffi",
+    "stdiobus.native._ffi",
     _SYSTEM_INCLUDES + cdefs,
     library_dirs=[str(LIB_DIR)],
     libraries=["stdio_bus"],

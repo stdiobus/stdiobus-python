@@ -82,7 +82,7 @@ where = ["."]
 include = ["stdiobus*"]
 
 [tool.setuptools.package-data]
-stdiobus = ["py.typed", "*.pyi", "_native/cdefs.h"]
+stdiobus = ["py.typed", "*.pyi", "native/cdefs.h"]
 
 # Include prebuilt kernel artifacts in the sdist/wheel so native build and
 # subprocess backend can resolve them without external dependencies.

@@ -18,7 +18,7 @@
 
 To build the native extension:
     cd stdiobus-python
-    python -m stdiobus._native.build_ffi
+    python -m stdiobus.native.build_ffi
 
 Prerequisites:
     - cffi package: pip install cffi
@@ -26,7 +26,7 @@ Prerequisites:
 """
 
 try:
-    from stdiobus._native._ffi import ffi, lib
+    from stdiobus.native._ffi import ffi, lib
     AVAILABLE = True
 except ImportError:
     ffi = None

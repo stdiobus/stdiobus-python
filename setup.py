@@ -23,8 +23,8 @@ cffi_modules = []
 
 try:
     # Verify the build script resolves paths (lib exists for this platform).
-    from stdiobus._native.build_ffi import ffi, RESOLVED_TRIPLE  # noqa: F401
-    cffi_modules = ["stdiobus/_native/build_ffi.py:ffi"]
+    from stdiobus.native.build_ffi import ffi, RESOLVED_TRIPLE  # noqa: F401
+    cffi_modules = ["stdiobus/native/build_ffi.py:ffi"]
     print(f"[setup.py] Native extension will be built for {RESOLVED_TRIPLE}")
 except (ImportError, FileNotFoundError, RuntimeError, OSError) as e:
     print(f"[setup.py] Skipping native extension: {e}")
