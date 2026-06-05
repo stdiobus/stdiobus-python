@@ -160,8 +160,14 @@ class BusConfig:
 
 @dataclass
 class SubprocessOptions:
-    """Subprocess backend configuration."""
-    binary_path: str = "stdio_bus"
+    """Subprocess backend configuration.
+
+    binary_path: Explicit path to the stdio_bus binary. When left as the
+    default empty string, the SDK resolves the bundled kernel/dist/stdio_bus
+    shell launcher shipped with the package. Set to a custom absolute path
+    to override (e.g., ``SubprocessOptions(binary_path="/opt/bin/stdio_bus")``).
+    """
+    binary_path: str = ""
     start_timeout_sec: float = 5.0
     drain_timeout_sec: float = 30.0
     stderr_buffer_lines: int = 200

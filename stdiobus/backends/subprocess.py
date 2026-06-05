@@ -159,7 +159,16 @@ class SubprocessBackend(Backend):
         On Windows, config_json falls back to a temp file + ``--config``.
         """
         import platform
-        binary = self._options.binary_path
+        from stdiobus._resolve_binary import resolve_binary
+
+        resolved = resolve_binary(self._options.binary_path)
+        if resolved is None:
+            raise TransportError(
+                "stdio_bus binary not found. Checked bundled kernel/dist/stdio_bus "
+                "and system PATH. Install the complete sdist or set "
+                "SubprocessOptions(binary_path='/path/to/stdio_bus') explicitly."
+            )
+        binary = resolved
         args: list[str] = []
 
         config_write_fd: Optional[int] = None
