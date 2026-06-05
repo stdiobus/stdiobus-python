@@ -17,9 +17,6 @@
 """Tests for subprocess backend."""
 
 import json
-import os
-import shutil
-import sys
 import pytest
 
 from stdiobus.backends.subprocess import SubprocessBackend, StderrRingBuffer
@@ -92,7 +89,7 @@ class TestSubprocessBackendOptions:
 
     def test_default_options(self):
         opts = SubprocessOptions()
-        assert opts.binary_path == "stdio_bus"
+        assert opts.binary_path == ""
         assert opts.start_timeout_sec == 5.0
         assert opts.drain_timeout_sec == 30.0
         assert opts.stderr_buffer_lines == 200
@@ -123,8 +120,8 @@ class TestBackendModeSubprocess:
 
 
 @pytest.mark.skipif(
-    not shutil.which("stdio_bus"),
-    reason="stdio_bus binary not in PATH"
+    not (lambda: __import__('stdiobus._resolve_binary', fromlist=['resolve_binary']).resolve_binary())(),
+    reason="stdio_bus binary not found (bundled or PATH)"
 )
 class TestSubprocessBackendIntegration:
     """Integration tests requiring the stdio_bus binary."""
@@ -143,7 +140,9 @@ class TestSubprocessBackendIntegration:
 
     @pytest.mark.asyncio
     async def test_start_stop(self, config_json):
-        binary = shutil.which("stdio_bus") or "../../build/stdio_bus"
+        from stdiobus._resolve_binary import resolve_binary
+        binary = resolve_binary()
+        assert binary is not None, "stdio_bus binary not resolved"
         backend = SubprocessBackend(
             config_json=config_json,
             options=SubprocessOptions(binary_path=binary),

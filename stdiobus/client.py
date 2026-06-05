@@ -19,7 +19,6 @@
 import asyncio
 import json
 import random
-import shutil
 import string
 import sys
 import time
@@ -289,16 +288,18 @@ def _resolve_backend(
     if listener_requested:
         return _create_native_backend(config_path, config_json, native_options)
 
+    from stdiobus._resolve_binary import resolve_binary
+
     if system == "windows":
         # Windows: try subprocess first (if binary found), fall back to docker
         opts = subprocess_options or SubprocessOptions()
-        if shutil.which(opts.binary_path):
+        if resolve_binary(opts.binary_path) is not None:
             return _create_subprocess_backend(config_path, config_json, subprocess_options)
         return _create_docker_backend(config_path, config_json, docker_options)
 
     # Unix: subprocess (if binary found) → native → docker
     opts = subprocess_options or SubprocessOptions()
-    if shutil.which(opts.binary_path):
+    if resolve_binary(opts.binary_path) is not None:
         return _create_subprocess_backend(config_path, config_json, subprocess_options)
 
     try:
