@@ -11,7 +11,13 @@ recursive-include stdiobus *.py
 recursive-include stdiobus *.pyi
 
 # Include native build header
-recursive-include stdiobus/_native *.h
+recursive-include stdiobus/native *.h
+
+# Include bundled kernel prebuilds (static libs for native cffi build)
+recursive-include kernel/prebuilds *.a
+
+# Include bundled kernel dist (executables for subprocess backend)
+recursive-include kernel/dist *
 
 # Include tests for sdist
 recursive-include tests *.py

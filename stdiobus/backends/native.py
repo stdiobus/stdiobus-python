@@ -22,7 +22,7 @@ import threading
 from typing import Callable, List, Optional
 
 from stdiobus.backends.base import Backend
-from stdiobus.types import BusState, BusStats
+from stdiobus.types import BusState, BusStats, ListenMode
 from stdiobus.errors import (
     InvalidStateError,
     TransportError,
@@ -30,7 +30,7 @@ from stdiobus.errors import (
 
 # Try to import cffi bindings
 try:
-    from stdiobus._native._ffi import ffi, lib
+    from stdiobus.native._ffi import ffi, lib
     NATIVE_AVAILABLE = True
 except ImportError:
     NATIVE_AVAILABLE = False
@@ -54,7 +54,7 @@ class NativeBackend(Backend):
     
     Build the native extension:
         cd stdiobus-python
-        python -m stdiobus._native.build_ffi
+        python -m stdiobus.native.build_ffi
     """
     
     def __init__(
@@ -70,7 +70,7 @@ class NativeBackend(Backend):
         if not NATIVE_AVAILABLE:
             raise ImportError(
                 "Native backend not available. "
-                "Build with: cd stdiobus-python && python -m stdiobus._native.build_ffi"
+                "Build with: cd stdiobus-python && python -m stdiobus.native.build_ffi"
             )
         
         self._config_path = config_path
@@ -304,6 +304,10 @@ class NativeBackend(Backend):
         if self._bus is None or self._bus == ffi.NULL:
             return 0
         return lib.stdio_bus_client_count(self._bus)
+
+    def get_listen_mode(self) -> ListenMode:
+        """Return the configured external listener mode for this native bus."""
+        return ListenMode(self._listen_mode)
     
     def _cleanup_strings(self) -> None:
         """Clean up C string references."""

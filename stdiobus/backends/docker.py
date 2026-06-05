@@ -301,6 +301,19 @@ class DockerBackend(Backend):
             client_connects=self._stats.client_connects,
             client_disconnects=self._stats.client_disconnects,
         )
+
+    def get_client_count(self) -> int:
+        """Return whether this SDK is connected to the container (0 or 1).
+
+        The Docker backend talks to the bus daemon over a single TCP socket,
+        so this reports *this SDK's* connection to the container — not the
+        number of clients the daemon itself serves (which is not introspectable
+        from here). Mirrors the Node SDK's ``socket ? 1 : 0`` semantics.
+
+        Worker count remains -1 (inherited): the daemon runs inside the
+        container and exposes no worker introspection over TCP.
+        """
+        return 1 if (self._state == BusState.RUNNING and self._writer is not None) else 0
     
     def destroy(self) -> None:
         """Release all resources."""

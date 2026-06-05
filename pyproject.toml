@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=77.0.0", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel", "cffi>=1.15"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -82,7 +82,12 @@ where = ["."]
 include = ["stdiobus*"]
 
 [tool.setuptools.package-data]
-stdiobus = ["py.typed", "*.pyi"]
+stdiobus = ["py.typed", "*.pyi", "native/cdefs.h"]
+
+# Include prebuilt kernel artifacts in the sdist/wheel so native build and
+# subprocess backend can resolve them without external dependencies.
+[tool.setuptools.data-files]
+# Not used — we include via MANIFEST.in + include-package-data for non-package dirs.
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
