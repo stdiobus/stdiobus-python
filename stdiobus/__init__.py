@@ -75,7 +75,7 @@ from stdiobus.errors import (
     InternalError,
 )
 
-__version__ = "2.2.0"
+__version__ = "2.2.1"
 __all__ = [
     # Main classes
     "StdioBus",
