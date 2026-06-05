@@ -16,6 +16,8 @@
 
 """Tests for native backend."""
 
+import asyncio
+import json
 import pytest
 import sys
 import os
@@ -59,6 +61,10 @@ def test_native_backend_requires_bindings():
         pytest.skip("Native bindings not built")
 
 
+TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
+ECHO_WORKER = os.path.join(TESTS_DIR, "real_echo_worker.py")
+
+
 @pytest.mark.skipif(
     not os.path.exists(os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -71,20 +77,27 @@ class TestNativeBackendIntegration:
     
     @pytest.fixture
     def config_path(self, tmp_path):
-        """Create a test config file."""
+        """Create a test config using the real JSON-RPC echo worker.
+        
+        The kernel requires a worker that participates in the JSON-RPC
+        protocol (at minimum: reads NDJSON from stdin, responds on stdout).
+        A raw pipe (e.g. node stdin.pipe(stdout)) does NOT satisfy this —
+        stop() triggers a kernel assertion (SIGTRAP) on graceful shutdown.
+        """
         config = tmp_path / "config.json"
-        config.write_text('''{
+        config_data = {
             "pools": [{
                 "id": "echo",
-                "command": "/usr/bin/env",
-                "args": ["node", "-e", "process.stdin.pipe(process.stdout)"],
-                "instances": 1
+                "command": sys.executable,
+                "args": [ECHO_WORKER],
+                "instances": 1,
             }],
             "limits": {
                 "max_input_buffer": 1048576,
-                "max_output_queue": 4194304
-            }
-        }''')
+                "max_output_queue": 4194304,
+            },
+        }
+        config.write_text(json.dumps(config_data))
         return str(config)
     
     def test_create_backend(self, config_path):
@@ -102,7 +115,12 @@ class TestNativeBackendIntegration:
     
     @pytest.mark.asyncio
     async def test_start_stop(self, config_path):
-        """Test starting and stopping native backend."""
+        """Test starting and stopping native backend.
+        
+        Verifies the full lifecycle: create → start → running → stop → stopped → destroy.
+        Uses real_echo_worker.py which correctly handles JSON-RPC, allowing the
+        kernel to perform a clean graceful shutdown without assertion failures.
+        """
         try:
             from stdiobus.backends.native import NativeBackend, is_native_available
             from stdiobus.types import BusState
@@ -113,9 +131,11 @@ class TestNativeBackendIntegration:
             backend = NativeBackend(config_path)
             
             await backend.start()
+            # Allow worker to initialize and become ready
+            await asyncio.sleep(0.3)
             assert backend.get_state() == BusState.RUNNING
             
-            await backend.stop()
+            await backend.stop(timeout_sec=5.0)
             assert backend.get_state() == BusState.STOPPED
             
             backend.destroy()
