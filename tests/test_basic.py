@@ -117,15 +117,30 @@ class TestStdioBusCreation:
         with pytest.raises(ValueError, match="instances"):
             StdioBus(config=BusConfig(pools=[PoolConfig(id='w', command='echo', instances=0)]))
 
-    def test_native_not_available(self):
-        """Test that native backend raises appropriate error when not built."""
+    def test_native_backend_availability_behavior(self):
+        """Native backend selection reflects whether the cffi bindings are built.
+
+        - If bindings are NOT built: selecting backend="native" must fail fast
+          with InvalidArgumentError ("Native backend not available").
+        - If bindings ARE built (prebuilt lib compiled via build_ffi): selecting
+          backend="native" must construct successfully.
+        Both are valid, environment-dependent outcomes; the test pins the
+        correct behavior for each rather than assuming bindings are absent.
+        """
+        from stdiobus.backends.native import is_native_available
+
         with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-            json.dump({"pools": []}, f)
+            json.dump({"pools": [{"id": "w", "command": "echo", "instances": 1}]}, f)
             config_path = f.name
 
         try:
-            with pytest.raises(InvalidArgumentError, match="Native backend not available"):
-                StdioBus(config_path=config_path, backend="native")
+            if is_native_available():
+                bus = StdioBus(config_path=config_path, backend="native")
+                assert bus.get_backend_type() == "native"
+                bus.destroy()
+            else:
+                with pytest.raises(InvalidArgumentError, match="Native backend not available"):
+                    StdioBus(config_path=config_path, backend="native")
         finally:
             os.unlink(config_path)
 

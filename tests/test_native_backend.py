@@ -60,8 +60,11 @@ def test_native_backend_requires_bindings():
 
 
 @pytest.mark.skipif(
-    not os.path.exists("../../build/libstdio_bus.a"),
-    reason="libstdio_bus.a not built"
+    not os.path.exists(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "kernel", "prebuilds"
+    )),
+    reason="kernel/prebuilds not present"
 )
 class TestNativeBackendIntegration:
     """Integration tests for native backend (requires built library)."""
